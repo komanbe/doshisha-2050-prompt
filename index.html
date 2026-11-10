@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>2050プロンプト 同志社</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+/* 班の端末でことばを入力 → ntfy.sh 経由で全端末に反映。「形なし」と「形あり」の2つのプロンプトをくらべる */
+:root {
+  --bg: #ffffff; --fg: #111111; --muted: #5f5f5f; --panel: #f2f2f2; --line: #e2e2e2;
+  --accent: #d6177f; --accent-ink: #ffffff; --accent-soft: #fce4f0; --ok: #1d7a46; --warn: #b3261e;
+  --font: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121212; --fg: #f3f3f3; --muted: #b0b0b0; --panel: #1f1f1f; --line: #333333;
+          --accent: #ff4fa8; --accent-ink: #111111; --accent-soft: #3a1529; --ok: #5fd08f; --warn: #ff8a80; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, #e20002, #bc03ad); z-index: 10; }
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: grid; gap: 12px; }
+h1 { font-size: clamp(22px, 3.2vw, 32px); font-weight: 900; margin: 0; text-wrap: balance; }
+.lead { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 64em; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs button {
+  font: 700 16px var(--font); border: 2px solid var(--fg); background: var(--bg); color: var(--fg);
+  border-radius: 999px; padding: 6px 16px; cursor: pointer; min-width: 3.6em;
+}
+.tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.tabs button.special { border-color: var(--accent); color: var(--accent); }
+.tabs button.special[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sync { font-size: 13px; color: var(--muted); margin: 0; }
+.sync.ok { color: var(--ok); }
+.sync.ng { color: var(--warn); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+.fields { display: grid; gap: 12px; }
+.field { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.field label { font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.num { min-width: 28px; padding: 0 6px; height: 28px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 14px; flex: none; }
+.num.dark { background: var(--fg); color: var(--bg); }
+.field input, .field textarea { width: 100%; font: 700 19px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.field textarea { resize: vertical; line-height: 1.5; min-height: 110px; }
+.field textarea.memo { font-size: 16px; font-weight: 500; min-height: 80px; }
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); font-weight: 400; }
+.hint { color: var(--muted); font-size: 13px; }
+.out { background: var(--fg); color: var(--bg); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.out-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.out-head strong { font-size: 15px; letter-spacing: .06em; color: var(--accent-soft); }
+.lang { display: flex; gap: 6px; }
+.lang button { font: 700 13px var(--font); border-radius: 999px; padding: 4px 12px; border: 1.5px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pbox { display: grid; gap: 6px; }
+.pbox h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tag { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.tag.a { background: var(--bg); color: var(--fg); }
+.tag.b { background: var(--accent); color: var(--accent-ink); }
+textarea.prompt { width: 100%; min-height: 110px; resize: vertical; font: 500 16px/1.7 var(--font); color: var(--fg); background: var(--bg); border: 0; border-radius: 10px; padding: 12px 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.copy { font: 900 16px var(--font); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px; padding: 8px 22px; cursor: pointer; }
+.status { font-size: 14px; color: var(--accent-soft); min-height: 1.4em; }
+.note { font-size: 13px; color: var(--accent-soft); margin: 0; }
+.ghost { font: 700 13px var(--font); border-radius: 999px; padding: 4px 12px; border: 1.5px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+.common { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.common input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.settings { background: var(--accent-soft); color: var(--fg); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.settings ul { margin: 4px 0 0; padding-left: 1.2em; }
+.sf { background: var(--bg); color: var(--fg); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+.sf strong { font-size: 15px; color: var(--accent); }
+.sf ul { margin: 0; padding-left: 1.2em; font-size: 15px; font-weight: 700; display: grid; gap: 4px; }
+.why { font-size: 14px; font-weight: 700; color: var(--accent); }
+.why::before { content: "なぜ？ "; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 8px; margin-right: 6px; font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 700 14px var(--font); border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.talk-text { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.8; }
+.talkbox { background: var(--accent-soft); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+@media (max-width: 420px) { .cards { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.card h2 { margin: 0; font-size: 20px; font-weight: 900; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card h2 small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.words { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 14px; margin: 0; }
+.words dt { color: var(--muted); }
+.words dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.card textarea.prompt { min-height: 96px; font-size: 14px; border: 1px solid var(--line); }
+.card .status { color: var(--ok); }
+.card .talk-text { font-size: 15px; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vs > div { background: var(--bg); border-radius: 10px; padding: 10px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.vs p { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.vs .pr { font-size: 12px; color: var(--muted); }
+.insight { background: var(--accent-soft); border-radius: 10px; padding: 10px; font-size: 15px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.hints details { background: var(--panel); border-radius: 12px; padding: 12px 16px; }
+.hints summary { font-weight: 700; cursor: pointer; }
+.hint-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 24px; margin-top: 6px; }
+@media (max-width: 900px) { .hint-grid { grid-template-columns: 1fr; } }
+.hint-grid h3 { margin: 6px 0 0; font-size: 14px; color: var(--accent); }
+.hint-grid ul { margin: 2px 0 0; padding-left: 1.2em; font-size: 14px; }
+.hints .src { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>2050年から持ち帰ったモノ　プロンプト</h1>
+      <p class="lead">同志社大学「先端文化情報学2」（2026年11月10日）。班のことばを入れると、全員の画面に反映されます。AIには「④どんなモノ」と「形」だけを渡し、<b>形なし</b>と<b>形あり</b>の2つのプロンプトで生成して、ちがいを話し合います。</p>
+    </div>
+    <div class="tabs" role="group" aria-label="表示" id="tabs"></div>
+    <p class="sync" id="sync" role="status">つないでいます…</p>
+  </header>
+
+  <section class="hints" id="hints">
+    <details>
+      <summary>数字のヒント（いま と 2050年）</summary>
+      <div class="hint-grid">
+        <div>
+          <h3>いま</h3>
+          <ul>
+            <li>日本の人口は<b>約1億2,281万人</b>。1年で約61万人減っている（2026年）</li>
+            <li>1年に生まれた子どもは<b>約67万人</b>で過去最少（2025年）</li>
+            <li>空き家は<b>約900万戸</b>。7〜8軒に1軒（2023年）</li>
+            <li>日本に住む外国籍の人は<b>約428万人</b>で過去最多（2026年）</li>
+            <li>対話型AIを<b>1週間に10億人以上</b>が使っている</li>
+          </ul>
+        </div>
+        <div>
+          <h3>2050年（予測）</h3>
+          <ul>
+            <li>日本の人口は<b>1億469万人</b>。いまより約1,800万人減る</li>
+            <li>65歳以上が<b>37.1%</b>。3人に1人以上</li>
+            <li>2040年に働き手が<b>約1,100万人</b>足りなくなる試算</li>
+            <li>サハラ以南のアフリカは<b>22億人</b>に（2054年）</li>
+            <li>世界の人口は2080年代に<b>約103億人</b>でピークの見通し</li>
+          </ul>
+        </div>
+        <div>
+          <h3>なくなるもの・残るもの</h3>
+          <ul>
+            <li>約20年で<b>8,580校</b>が廃校に（2002〜2020年度）</li>
+            <li>2050年、いま人が住む地域の<b>約2割</b>が無居住化する見通し</li>
+            <li>伝統工芸の生産は、昭和50年代をピークに減っている</li>
+            <li>2050年に、何を残して、何を手放す？ なってほしくない未来は？</li>
+          </ul>
+        </div>
+      </div>
+      <p class="src">出典：総務省統計局、厚生労働省、出入国在留管理庁、内閣府『高齢社会白書』（国立社会保障・人口問題研究所の推計）、国連、OpenAI、リクルートワークス研究所、文部科学省、国土交通省、経済産業省</p>
+    </details>
+  </section>
+
+  <section id="teamView" class="grid">
+    <form class="fields" id="form" autocomplete="off">
+      <div class="field"><label for="a"><span class="num">1</span>2050年は、どんな日本？</label><input id="a"><span class="why" data-why="a" hidden></span></div>
+      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b"><span class="why" data-why="b" hidden></span></div>
+      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c"><span class="why" data-why="c" hidden></span></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d"><span class="why" data-why="d" hidden></span>
+        <span class="hint">ルール：手のひらにのるモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…</span></div>
+      <div class="field">
+        <label for="g"><span class="num">形</span>どんな形？（「形あり」のプロンプトだけに入る）</label>
+        <textarea id="g" rows="3"></textarea><span class="why" data-why="g" hidden></span>
+        <span class="hint">輪郭・大きさのバランス・ついているもの・手ざわりを、見たことがない人にも伝わるように。下のボタンで足してもOK。</span>
+        <span class="hint">もとの形（1つ）</span><div class="chips" data-group="sh"></div>
+        <span class="hint">ついているもの（3つまで）</span><div class="chips" data-group="pt"></div>
+        <span class="hint">ふんいき（1つ）</span><div class="chips" data-group="st"></div>
+      </div>
+      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e"><span class="why" data-why="e" hidden></span>
+        <span class="hint">発表で話す一言です。AIには入れません。</span></div>
+      <div class="field">
+        <label><span class="num dark">結果</span>生成して、くらべる</label>
+        <label for="rA" class="hint" style="font-weight:700">「形なし」で出てきたもの</label>
+        <textarea id="rA" class="memo"></textarea>
+        <label for="rB" class="hint" style="font-weight:700">「形あり」で出てきたもの</label>
+        <textarea id="rB" class="memo"></textarea>
+        <label for="n" class="hint" style="font-weight:700">ちがい・気づき（AIに伝わったこと、伝わらなかったこと）</label>
+        <textarea id="n" class="memo"></textarea>
+      </div>
+      <div class="field talkbox"><label>発表のことば（自動でまとまります）</label><p id="talkText" class="talk-text"></p></div>
+    </form>
+    <section class="out" aria-label="できあがったプロンプト">
+      <div class="out-head">
+        <strong id="outTitle">1班のプロンプト</strong>
+        <div class="lang" role="group" aria-label="言語">
+          <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+          <button type="button" data-lang="en" aria-pressed="false">英語</button>
+        </div>
+      </div>
+      <div class="pbox">
+        <h3><span class="tag a">A</span>形なし（④だけ）</h3>
+        <textarea id="pA" class="prompt" aria-label="形なしのプロンプト（編集できます）"></textarea>
+        <div class="row">
+          <button type="button" class="copy" data-copy="pA">Aをコピー</button>
+          <button type="button" class="ghost" data-reset="pA" hidden>自動に戻す</button>
+          <span class="status" data-status="pA" role="status"></span>
+        </div>
+      </div>
+      <div class="pbox">
+        <h3><span class="tag b">B</span>形あり（形のことば＋④）</h3>
+        <textarea id="pB" class="prompt" aria-label="形ありのプロンプト（編集できます）"></textarea>
+        <div class="row">
+          <button type="button" class="copy" data-copy="pB">Bをコピー</button>
+          <button type="button" class="ghost" data-reset="pB" hidden>自動に戻す</button>
+          <span class="status" data-status="pB" role="status"></span>
+        </div>
+      </div>
+      <label class="common"><input type="checkbox" id="x"><span>AとBの両方に「底は平ら、細い部分なし」を足す（3Dプリント向け。AとBの差は形のことばだけのまま）</span></label>
+      <p class="note" id="promptMode">自動でつくったプロンプトです。直接書きかえることもできます（全員に反映）。</p>
+      <p class="note" id="example" hidden>空いている欄は、例のことばで仮に入れています。</p>
+      <section class="sf" aria-label="SF作家からの問い">
+        <div class="row"><strong>SF作家からの問い</strong><button type="button" class="ghost" id="nextSf">ほかの問い</button></div>
+        <ul id="sfList"></ul>
+        <div class="row">
+          <button type="button" class="ghost" id="copyAsk">AIにSF作家風の講評を頼む文をコピー</button>
+          <span class="status" id="statusAsk" role="status"></span>
+        </div>
+      </section>
+      <div class="settings">
+        <b>Tripoの設定</b>
+        <ul>
+          <li>モデルを生成 → 鉛筆アイコン（テキスト）に貼る</li>
+          <li>テクスチャ：オフ ／ トポロジー：三角形 ／ ポリゴン数：100000</li>
+          <li>AとBを同じ設定で1回ずつ生成して、ならべてくらべる</li>
+          <li>人や文字が出たら、④を「モノ」がわかることばにする</li>
+        </ul>
+      </div>
+    </section>
+  </section>
+
+  <section id="allView" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <span class="hint">各班のことばとプロンプトが集まります。コピーしてTripoに貼ってください。</span>
+      <div class="lang" role="group" aria-label="言語">
+        <button type="button" data-lang="ja" aria-pressed="true">日本語</button>
+        <button type="button" data-lang="en" aria-pressed="false">英語</button>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="cmpView" hidden>
+    <p class="hint" style="margin:0 0 12px">形なし（A）と形あり（B）で、何が出てきたか。ちがい・気づきを班ごとにならべます。</p>
+    <div class="cards" id="cmpCards"></div>
+  </section>
+
+  <section id="talkView" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <span class="hint">各班の入力から、発表のことばを自動でまとめています。</span>
+      <div class="row">
+        <button type="button" class="copy" id="copyAll">全班分をコピー</button>
+        <span class="status" id="statusAll" role="status" style="color:var(--ok)"></span>
+      </div>
+    </div>
+    <div class="cards" id="talkCards"></div>
+  </section>
+</div>
+
+<script>
+const TOPIC = "doshisha2050-e340b03c3dd565";
+const BASE = "https://ntfy.sh/" + TOPIC;
+const TEAMS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const KEYS = ["a", "b", "c", "d", "g", "e"];
+const MEMO = ["rA", "rB", "n"];
+const LABELS = { a: "①どんな日本", b: "②だれのため", c: "③使うとき", d: "④どんなモノ", g: "形", e: "⑤伝えたいこと" };
+const EX = { a: "子どもが少ない", b: "ひとり暮らしの祖母", c: "買い物に行くとき", d: "家族の声が聞こえるお守り", g: "しずく形で、上にひもを通す穴。表にスピーカーの小さな穴", e: "ひとりでも、さみしくない" };
+const PH = { ...EX, rA: "例：人形が出た／形がぼんやりした", rB: "例：しずく形になった。穴も出た", n: "例：「お守り」だけだと、AIは人形を想像した。形を書くと…" };
+const FIELDS = ["a", "b", "c", "d", "g", "e", "sh", "pt", "st", "pA", "pB", "rA", "rB", "n", "x"];
+const data = {};
+for (const t of TEAMS) data[t] = {};
+let view = "1";
+let lang = "ja";
+let sfSeed = 0;
+const timers = {};
+
+function readLocal() {
+  try { const saved = JSON.parse(localStorage.getItem("dsh2050_sync") || "{}"); for (const t of TEAMS) if (saved[t]) data[t] = saved[t]; } catch (e) {}
+  try { view = localStorage.getItem("dsh2050_view") || view; } catch (e) {}
+}
+function writeLocal() { try { localStorage.setItem("dsh2050_sync", JSON.stringify(data)); } catch (e) {} }
+function remember() { try { localStorage.setItem("dsh2050_view", view); } catch (e) {} }
+function setSync(text, cls) { const el = document.getElementById("sync"); el.textContent = text; el.className = "sync " + (cls || ""); }
+function clock(t) { return new Date(t).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+const val = (w, k) => ((w && w[k]) || "").trim();
+const teamName = t => `${t}班`;
+
+const SHAPES = { sphere: ["まる", "まるい玉", "round ball"], egg: ["たまご", "たまご", "egg"], box: ["はこ", "四角い箱", "box"], cylinder: ["つつ", "つつ", "cylinder"], plate: ["いた", "うすい板", "flat tablet"], drop: ["しずく", "しずく", "teardrop"], dome: ["ドーム", "ドーム", "dome"], ring: ["わっか", "わっか", "ring"], stick: ["ぼう", "太いぼう", "thick stick"], gun: ["ピストル", "ピストル", "pistol"] };
+const PARTS = { buttons: ["ボタン", "ボタン", "buttons"], screen: ["画面", "小さな画面", "a small screen"], antenna: ["アンテナ", "太くて短いアンテナ", "a short thick antenna"], wings: ["羽", "小さな羽", "small wings"], wheels: ["車輪", "車輪", "wheels"], loop: ["ひも穴", "ひもを通す穴", "a strap loop"], handle: ["取っ手", "取っ手", "a handle"], light: ["ライト", "まるいライト", "a round light"], speaker: ["スピーカー", "スピーカーの穴", "a speaker grille"], eyes: ["目", "まるい2つの目", "two round eyes"], legs: ["足", "短い足", "short legs"], lid: ["ふた", "ふた", "a lid"] };
+const STYLES = { soft: ["丸っこい", "丸っこい", "soft rounded"], angular: ["カクカク", "カクカクした", "angular faceted"], sleek: ["つるつる", "つるつるの", "sleek smooth"], rugged: ["ゴツゴツ", "ゴツゴツした", "rugged"], cute: ["かわいい", "かわいい", "cute"], cool: ["かっこいい", "かっこいい", "cool futuristic"] };
+function shapeOf(w) { return { sh: val(w, "sh"), pt: val(w, "pt").split(",").filter(Boolean), st: val(w, "st") }; }
+function shapeText(sp, lg) {
+  const i = lg === "ja" ? 1 : 2;
+  const st = sp.st && STYLES[sp.st] ? STYLES[sp.st][i] : "";
+  const sh = sp.sh && SHAPES[sp.sh] ? SHAPES[sp.sh][i] : "";
+  const parts = sp.pt.filter(k => PARTS[k]).map(k => PARTS[k][i]);
+  if (lg === "ja") {
+    let t = "";
+    if (sh) t += `${st}${sh}の形。`; else if (st) t += `${st}形。`;
+    if (parts.length) t += `${parts.join("と")}がついている。`;
+    return t;
+  }
+  let t = "";
+  const noun = `${st ? st + " " : ""}${sh}`;
+  if (sh) t += `Shaped like ${/^[aeiou]/i.test(noun) ? "an" : "a"} ${noun}`; else if (st) t += `${st[0].toUpperCase()}${st.slice(1)} shape`;
+  if (parts.length) t += (t ? ", with " : "With ") + parts.join(", ");
+  return t ? t + ". " : "";
+}
+// A＝形なし：④だけ。B＝形あり：形のことば＋④。共通の注文はAとBの両方に同じだけ足す
+function filledD(w) { const d = val(w, "d"); return { d: d || EX.d, usedExample: !d }; }
+function autoPrompt(team, which) {
+  const w = data[team];
+  const { d } = filledD(w);
+  const common = w.x === "1";
+  const g = val(w, "g").replace(/[。.]+$/, "");
+  const sp = shapeText(shapeOf(w), lang);
+  if (which === "pA" || !(g || sp)) {
+    if (lang === "ja") return `「${d}」。モノだけを1つ。` + (common ? "底は平ら、細い部分なし。" : "");
+    return `"${d}". Single object only.` + (common ? " Flat base, no thin parts." : "");
+  }
+  const shape = (g ? (lang === "ja" ? `${g}。` : `${g}. `) : "") + sp;
+  if (lang === "ja") return `${shape}「${d}」をイメージしたモノ。モノだけを1つ。` + (common ? "底は平ら、細い部分なし。" : "");
+  return `${shape}Inspired by "${d}". Single object only.` + (common ? " Flat base, no thin parts." : "");
+}
+function promptFor(team, which) { const w = data[team]; return val(w, which) ? w[which] : autoPrompt(team, which); }
+function hasShape(w) { const sp = shapeOf(w); return !!(val(w, "g") || sp.sh || sp.st || sp.pt.length); }
+
+function talkText(w) {
+  const a = val(w, "a"), b = val(w, "b"), c = val(w, "c"), d = val(w, "d"), e = val(w, "e"), rA = val(w, "rA"), rB = val(w, "rB"), n = val(w, "n");
+  const parts = [];
+  if (a) parts.push(`2050年の日本は、${a}日本です。`);
+  if (d) parts.push(`私たちが持ち帰ったのは「${d}」です。`);
+  if (b && c) parts.push(`${b}が、${c}に使います。`); else if (b) parts.push(`${b}のためのモノです。`); else if (c) parts.push(`${c}に使います。`);
+  if (rA) parts.push(`形を伝えずにAIに頼むと、${rA.replace(/[。.]+$/, "")}。`);
+  if (rB) parts.push(`形を伝えると、${rB.replace(/[。.]+$/, "")}。`);
+  if (n) parts.push(`気づいたのは、${n.replace(/[。.]+$/, "")}ということです。`);
+  if (e) parts.push(`いちばん伝えたいのは、${e.replace(/[。.]+$/, "")}ということです。`);
+  return parts.join("") || "まだ入力がありません。";
+}
+function sfQuestions(w, seed) {
+  const g = (k, ex) => val(w, k) || ex;
+  const a = g("a", "人が少ない"), b = g("b", "だれか"), c = g("c", "ふだん"), d = g("d", "そのモノ");
+  const qs = [
+    `「${d}」が壊れた日、${b}はどうする？ だれが直す？`,
+    `「${d}」を持てない人は、2050年にどんな気持ちでいる？`,
+    `${a}2050年。「${d}」が広まると、何が消えて、何が生まれる？`,
+    `「${d}」が当たり前になったら、いまの「${c}」はどう変わる？`,
+    `この物語の悪役はだれ？ 「${d}」を悪用する人はいる？`,
+    `100年後の博物館。「${d}」の横には、どんな解説が書かれている？`,
+    `「${d}」がなかったら、2050年の${b}は何に困っていた？`,
+    `「${d}」のせいで、少し不便になる人はいない？`,
+  ];
+  return [0, 1, 2].map(i => qs[(seed * 3 + i) % qs.length]);
+}
+function askText(team) {
+  const w = data[team];
+  const g = k => val(w, k) || "（まだ）";
+  return `あなたは日本のSF作家です。大学生の班が「2050年から持ち帰ったモノ」を考え、AIで3Dモデルにしました。\n` +
+    `①どんな日本：${g("a")}\n②だれのため：${g("b")}\n③使うとき：${g("c")}\n④どんなモノ（手のひらサイズ）：${g("d")}\n形：${g("g")}\n⑤伝えたいこと：${g("e")}\n` +
+    `形なしで生成した結果：${g("rA")}\n形ありで生成した結果：${g("rB")}\n` +
+    `SF作家として、このアイデアの面白いところを1つほめて、物語がもっと深くなる「もし〜なら？」の問いを2つ出してください。` +
+    `明るい面だけでなく、なってほしくない未来の側からの問いも1つ入れてください。全部で200字くらいにしてください。`;
+}
+function whyFor(k, t) {
+  if (!t) return "";
+  return {
+    a: `なぜ「${t}」日本になると考えた？ 数字のヒントに根拠はある？`,
+    b: `なぜ「${t}」のため？ その人は、いま何に困っている？`,
+    c: `なぜ「${t}」なの？ その場面で、いまは何が大変？`,
+    d: `なぜ「${t}」なら助かる？ 手のひらサイズでいい理由は？`,
+    g: `なぜその形？ 使うときの手の動きや、置く場所とつながっている？`,
+    e: `なぜそれを、いちばん伝えたい？`,
+  }[k];
+}
+
+function buildTabs() {
+  const box = document.getElementById("tabs");
+  for (const t of TEAMS) { const b = document.createElement("button"); b.type = "button"; b.dataset.view = t; b.textContent = teamName(t); box.appendChild(b); }
+  for (const [v, label] of [["all", "全班（操作用）"], ["cmp", "形なし×形ありをくらべる"], ["talk", "発表まとめ"]]) {
+    const b = document.createElement("button"); b.type = "button"; b.dataset.view = v; b.className = "special"; b.textContent = label; box.appendChild(b);
+  }
+}
+function renderWhy() {
+  const w = data[view];
+  for (const k of KEYS) { const el = document.querySelector(`[data-why="${k}"]`); const t = whyFor(k, val(w, k)); el.hidden = !t; el.textContent = t; }
+}
+function renderChips() {
+  const sp = shapeOf(data[view]);
+  for (const [g, dict] of Object.entries({ sh: SHAPES, pt: PARTS, st: STYLES })) {
+    const box = document.querySelector(`.chips[data-group="${g}"]`);
+    if (!box.childElementCount) {
+      for (const [k, v] of Object.entries(dict)) {
+        const b = document.createElement("button"); b.type = "button"; b.dataset.v = k; b.textContent = v[0];
+        b.addEventListener("click", () => pickChip(g, k));
+        box.appendChild(b);
+      }
+    }
+    for (const b of box.children) b.setAttribute("aria-pressed", String(g === "pt" ? sp.pt.includes(b.dataset.v) : sp[g] === b.dataset.v));
+  }
+}
+function pickChip(g, k) {
+  const w = data[view];
+  const sp = shapeOf(w);
+  if (g === "pt") { let list = sp.pt.includes(k) ? sp.pt.filter(x => x !== k) : [...sp.pt, k]; if (list.length > 3) list = list.slice(-3); w.pt = list.join(","); }
+  else w[g] = sp[g] === k ? "" : k;
+  touch(); renderChips(); renderPrompts(); scheduleSend(false);
+}
+function renderPrompts() {
+  const w = data[view];
+  for (const which of ["pA", "pB"]) {
+    const ta = document.getElementById(which);
+    if (document.activeElement !== ta) ta.value = promptFor(view, which);
+    document.querySelector(`[data-reset="${which}"]`).hidden = !val(w, which);
+  }
+  const manual = val(w, "pA") || val(w, "pB");
+  document.getElementById("promptMode").textContent = manual ? "手で書きかえたプロンプトがあります（全員に反映）。「自動に戻す」で元に戻せます。" : "自動でつくったプロンプトです。直接書きかえることもできます（全員に反映）。";
+  document.getElementById("example").hidden = !filledD(w).usedExample;
+  document.getElementById("x").checked = w.x === "1";
+}
+function renderSf() {
+  const list = document.getElementById("sfList"); list.textContent = "";
+  for (const q of sfQuestions(data[view], sfSeed)) { const li = document.createElement("li"); li.textContent = q; list.appendChild(li); }
+}
+function renderTeam() {
+  const w = data[view];
+  for (const k of [...KEYS, ...MEMO]) {
+    const el = document.getElementById(k);
+    if (document.activeElement !== el) el.value = w[k] || "";
+    el.placeholder = (k === "rA" || k === "rB" || k === "n") ? PH[k] : "例：" + PH[k];
+  }
+  renderPrompts(); renderWhy(); renderChips(); renderSf();
+  document.getElementById("outTitle").textContent = `${teamName(view)}のプロンプト`;
+  document.getElementById("talkText").textContent = talkText(w);
+}
+function promptCard(team, which, label) {
+  const wrap = document.createElement("div"); wrap.className = "pbox";
+  const h = document.createElement("h3"); const tag = document.createElement("span"); tag.className = "tag " + (which === "pA" ? "a" : "b"); tag.textContent = which === "pA" ? "A" : "B"; h.append(tag, label);
+  const ta = document.createElement("textarea"); ta.className = "prompt"; ta.setAttribute("aria-label", `${teamName(team)}の${label}プロンプト（編集できます）`);
+  ta.value = promptFor(team, which);
+  ta.addEventListener("input", () => { data[team][which] = ta.value; data[team].t = Date.now(); writeLocal(); scheduleSend(false, team); });
+  ta.addEventListener("blur", () => scheduleSend(true, team));
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "copy"; btn.textContent = "コピー";
+  const st = document.createElement("span"); st.className = "status"; st.setAttribute("role", "status");
+  btn.addEventListener("click", () => copyText(ta, st));
+  const row = document.createElement("div"); row.className = "row"; row.append(btn, st);
+  wrap.append(h, ta, row);
+  return wrap;
+}
+function renderAll() {
+  const box = document.getElementById("cards"); box.textContent = "";
+  for (const team of TEAMS) {
+    const w = data[team];
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = teamName(team);
+    const small = document.createElement("small"); small.textContent = w.t ? `更新 ${clock(w.t)}` : "まだ入力なし"; h.appendChild(small);
+    const dl = document.createElement("dl"); dl.className = "words";
+    for (const k of KEYS) { const dt = document.createElement("dt"); dt.textContent = LABELS[k]; const dd = document.createElement("dd"); dd.textContent = val(w, k) || "—"; dl.append(dt, dd); }
+    card.append(h, dl, promptCard(team, "pA", "形なし"), promptCard(team, "pB", "形あり"));
+    box.appendChild(card);
+  }
+}
+function renderCmp() {
+  const box = document.getElementById("cmpCards"); box.textContent = "";
+  for (const team of TEAMS) {
+    const w = data[team];
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = `${teamName(team)}：${val(w, "d") || "—"}`;
+    const vs = document.createElement("div"); vs.className = "vs";
+    for (const [which, r, label] of [["pA", "rA", "A 形なし"], ["pB", "rB", "B 形あり"]]) {
+      const col = document.createElement("div");
+      const t = document.createElement("span"); t.className = "tag " + (which === "pA" ? "a" : "b"); t.textContent = label; t.style.justifySelf = "start";
+      const res = document.createElement("p"); res.textContent = val(w, r) || "（結果はまだ）"; res.style.fontWeight = "700";
+      const pr = document.createElement("p"); pr.className = "pr"; pr.textContent = val(w, "d") || val(w, which) ? promptFor(team, which) : "（プロンプトはまだ）";
+      col.append(t, res, pr); vs.appendChild(col);
+    }
+    if (!val(w, "d") && !w.t) card.append(h, vs);
+    else if (!hasShape(w)) { const warn = document.createElement("p"); warn.className = "hint"; warn.textContent = "形のことばがまだ入っていないので、AとBがほぼ同じです。"; card.append(h, vs, warn); }
+    else card.append(h, vs);
+    const ins = document.createElement("p"); ins.className = "insight"; ins.textContent = val(w, "n") ? "気づき：" + val(w, "n") : "気づき：（まだ）";
+    card.appendChild(ins);
+    box.appendChild(card);
+  }
+}
+function renderTalk() {
+  const box = document.getElementById("talkCards"); box.textContent = "";
+  for (const team of TEAMS) {
+    const card = document.createElement("article"); card.className = "card";
+    const h = document.createElement("h2"); h.textContent = teamName(team);
+    const p = document.createElement("p"); p.className = "talk-text"; p.textContent = talkText(data[team]);
+    card.append(h, p); box.appendChild(card);
+  }
+}
+function render() {
+  document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === view)));
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  const team = TEAMS.includes(view);
+  document.getElementById("teamView").hidden = !team;
+  document.getElementById("hints").hidden = !team;
+  document.getElementById("allView").hidden = view !== "all";
+  document.getElementById("cmpView").hidden = view !== "cmp";
+  document.getElementById("talkView").hidden = view !== "talk";
+  if (team) renderTeam(); else if (view === "all") renderAll(); else if (view === "talk") renderTalk(); else renderCmp();
+}
+function copyText(ta, status) {
+  const done = () => { status.textContent = "コピーしました。Tripoに貼ってください。"; };
+  const fallback = () => { ta.focus(); ta.select(); status.textContent = "選択しました。⌘C（Ctrl+C）でコピーしてください。"; };
+  try { navigator.clipboard.writeText(ta.value).then(done, fallback); } catch (e) { fallback(); }
+}
+
+// 送信：打ち終わって2.5秒たったら、または欄から離れたら送る（中継サービスの回数制限に配慮）
+function touch(team = view) { data[team].t = Date.now(); writeLocal(); }
+function payload(team) {
+  const w = data[team]; const o = { team, t: w.t };
+  for (const k of FIELDS) o[k] = w[k] || "";
+  return JSON.stringify(o);
+}
+function scheduleSend(now, team = view) {
+  clearTimeout(timers[team]);
+  if (now) send(team); else timers[team] = setTimeout(() => send(team), 2500);
+}
+async function send(team = view) {
+  clearTimeout(timers[team]);
+  if (!TEAMS.includes(team)) return;
+  const w = data[team];
+  if (!w.t) return;
+  const body = payload(team);
+  if (w.sent === body) return;
+  try {
+    const r = await fetch(BASE, { method: "POST", body });
+    if (!r.ok) throw new Error(r.status);
+    w.sent = body; writeLocal();
+    setSync(`送信しました（${clock(Date.now())}）`, "ok");
+  } catch (e) {
+    setSync("送信できませんでした。ネットを確認してください。入力はこの端末に残っています。", "ng");
+  }
+}
+function applyMessage(m) {
+  let p; try { p = JSON.parse(m.message); } catch (e) { return false; }
+  if (!p || !TEAMS.includes(String(p.team))) return false;
+  const team = String(p.team);
+  const cur = data[team] || {};
+  const t = Number(p.t) || m.time * 1000;
+  if (cur.t && cur.t >= t) return false;
+  const next = { t };
+  for (const k of FIELDS) next[k] = typeof p[k] === "string" ? p[k] : "";
+  data[team] = next;
+  data[team].sent = payload(team);
+  return true;
+}
+async function pull() {
+  try {
+    const r = await fetch(BASE + "/json?poll=1&since=12h");
+    if (!r.ok) throw new Error(r.status);
+    const text = await r.text();
+    let changed = false;
+    for (const line of text.split("\n")) { if (!line.trim()) continue; try { const m = JSON.parse(line); if (m.event === "message" && applyMessage(m)) changed = true; } catch (e) {} }
+    if (changed) { writeLocal(); render(); }
+    setSync(`つながっています（${clock(Date.now())}）`, "ok");
+  } catch (e) {
+    setSync("つながっていません。この端末だけで使えます。", "ng");
+  }
+}
+function listen() {
+  try {
+    const es = new EventSource(BASE + "/sse");
+    es.onmessage = ev => { try { const m = JSON.parse(ev.data); if (m.event === "message" && applyMessage(m)) { writeLocal(); render(); } } catch (e) {} };
+    es.onopen = () => setSync(`つながっています（${clock(Date.now())}）`, "ok");
+    es.onerror = () => setSync("再接続しています…", "");
+  } catch (e) {}
+  setInterval(pull, 30000);   // 取りこぼし対策
+}
+
+buildTabs();
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
+  send(); view = b.dataset.view; remember(); render();
+}));
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { lang = b.dataset.lang; render(); }));
+const form = document.getElementById("form");
+form.addEventListener("input", () => {
+  const w = data[view];
+  for (const k of [...KEYS, ...MEMO]) w[k] = document.getElementById(k).value;
+  touch(); renderPrompts(); renderWhy(); renderSf();
+  document.getElementById("talkText").textContent = talkText(w);
+  scheduleSend(false);
+});
+form.addEventListener("focusout", () => scheduleSend(true));
+form.addEventListener("submit", e => { e.preventDefault(); scheduleSend(true); });
+for (const which of ["pA", "pB"]) {
+  const ta = document.getElementById(which);
+  ta.addEventListener("input", () => { data[view][which] = ta.value; touch(); document.querySelector(`[data-reset="${which}"]`).hidden = false; scheduleSend(false); });
+  ta.addEventListener("blur", () => scheduleSend(true));
+  document.querySelector(`[data-reset="${which}"]`).addEventListener("click", () => { data[view][which] = ""; touch(); renderPrompts(); scheduleSend(true); });
+  document.querySelector(`[data-copy="${which}"]`).addEventListener("click", () => copyText(ta, document.querySelector(`[data-status="${which}"]`)));
+}
+document.getElementById("x").addEventListener("change", e => { data[view].x = e.target.checked ? "1" : ""; touch(); renderPrompts(); scheduleSend(true); });
+document.getElementById("nextSf").addEventListener("click", () => { sfSeed++; renderSf(); });
+document.getElementById("copyAsk").addEventListener("click", () => {
+  const st = document.getElementById("statusAsk");
+  try { navigator.clipboard.writeText(askText(view)).then(() => { st.textContent = "コピーしました。ChatGPTやClaudeに貼ってください。"; }, () => { st.textContent = "コピーできませんでした"; }); }
+  catch (e) { st.textContent = "コピーできませんでした"; }
+});
+document.getElementById("copyAll").addEventListener("click", () => {
+  const st = document.getElementById("statusAll");
+  const text = TEAMS.map(t => `${teamName(t)}：` + talkText(data[t])).join("\n");
+  try { navigator.clipboard.writeText(text).then(() => { st.textContent = "コピーしました"; }, () => { st.textContent = "コピーできませんでした"; }); }
+  catch (e) { st.textContent = "コピーできませんでした"; }
+});
+
+readLocal();
+if (![...TEAMS, "all", "cmp", "talk"].includes(view)) view = "1";
+render();
+pull().then(listen);
+</script>
+</body>
+</html>
