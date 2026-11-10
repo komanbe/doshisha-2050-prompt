@@ -47,6 +47,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .field { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
 .field label { font-weight: 700; display: flex; align-items: center; gap: 10px; }
 .num { min-width: 28px; padding: 0 6px; height: 28px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 14px; flex: none; }
+.stage { margin-left: auto; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 10px; background: var(--accent-soft); color: var(--accent); flex: none; }
 .num.dark { background: var(--fg); color: var(--bg); }
 .field input, .field textarea { width: 100%; font: 700 19px var(--font); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; }
 .field textarea { resize: vertical; line-height: 1.5; min-height: 110px; }
@@ -115,7 +116,7 @@ textarea.prompt { width: 100%; min-height: 110px; resize: vertical; font: 500 16
   <header>
     <div>
       <h1>2050年から持ち帰ったモノ　プロンプト</h1>
-      <p class="lead">同志社大学「先端文化情報学2」（2026年11月10日）。班のことばを入れると、全員の画面に反映されます。AIには「④どんなモノ」と「形」だけを渡し、<b>形なし</b>と<b>形あり</b>の2つのプロンプトで生成して、ちがいを話し合います。</p>
+      <p class="lead">同志社大学「先端文化情報学2」（2026年11月10日）。班のことばを入れると、全員の画面に反映されます。AIには「④どんなモノ」と「形」だけを渡し、<b>形なし</b>と<b>形あり</b>の2つのプロンプトで生成して、ちがいを話し合います。共感→定義→発想→試作→テストの順に、デザイン思考を1周します。</p>
     </div>
     <div class="tabs" role="group" aria-label="表示" id="tabs"></div>
     <p class="sync" id="sync" role="status">つないでいます…</p>
@@ -161,23 +162,23 @@ textarea.prompt { width: 100%; min-height: 110px; resize: vertical; font: 500 16
 
   <section id="teamView" class="grid">
     <form class="fields" id="form" autocomplete="off">
-      <div class="field"><label for="a"><span class="num">1</span>2050年は、どんな日本？</label><input id="a"><span class="why" data-why="a" hidden></span></div>
-      <div class="field"><label for="b"><span class="num">2</span>だれのため？</label><input id="b"><span class="why" data-why="b" hidden></span></div>
-      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？</label><input id="c"><span class="why" data-why="c" hidden></span></div>
-      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？</label><input id="d"><span class="why" data-why="d" hidden></span>
+      <div class="field"><label for="a"><span class="num">1</span>2050年は、どんな日本？<span class="stage">共感</span></label><input id="a"><span class="why" data-why="a" hidden></span></div>
+      <div class="field"><label for="b"><span class="num">2</span>だれのため？<span class="stage">共感</span></label><input id="b"><span class="why" data-why="b" hidden></span></div>
+      <div class="field"><label for="c"><span class="num">3</span>どんなときに使う？<span class="stage">定義</span></label><input id="c"><span class="why" data-why="c" hidden></span></div>
+      <div class="field"><label for="d"><span class="num">4</span>どんなモノ？<span class="stage">発想</span></label><input id="d"><span class="why" data-why="d" hidden></span>
         <span class="hint">ルール：手のひらにのるモノなら、なんでもOK。道具、ロボット、食べもの、おもちゃ、アクセサリー、楽器、お守り…</span></div>
       <div class="field">
-        <label for="g"><span class="num">形</span>どんな形？（「形あり」のプロンプトだけに入る）</label>
+        <label for="g"><span class="num">形</span>どんな形？（「形あり」のBだけに入る）<span class="stage">試作</span></label>
         <textarea id="g" rows="3"></textarea><span class="why" data-why="g" hidden></span>
         <span class="hint">輪郭・大きさのバランス・ついているもの・手ざわりを、見たことがない人にも伝わるように。下のボタンで足してもOK。</span>
         <span class="hint">もとの形（1つ）</span><div class="chips" data-group="sh"></div>
         <span class="hint">ついているもの（3つまで）</span><div class="chips" data-group="pt"></div>
         <span class="hint">ふんいき（1つ）</span><div class="chips" data-group="st"></div>
       </div>
-      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと</label><input id="e"><span class="why" data-why="e" hidden></span>
+      <div class="field"><label for="e"><span class="num">5</span>いちばん伝えたいこと<span class="stage">発表</span></label><input id="e"><span class="why" data-why="e" hidden></span>
         <span class="hint">発表で話す一言です。AIには入れません。</span></div>
       <div class="field">
-        <label><span class="num dark">結果</span>生成して、くらべる</label>
+        <label><span class="num dark">結果</span>生成して、くらべる<span class="stage">テスト</span></label>
         <label for="rA" class="hint" style="font-weight:700">「形なし」で出てきたもの</label>
         <textarea id="rA" class="memo"></textarea>
         <label for="rB" class="hint" style="font-weight:700">「形あり」で出てきたもの</label>
